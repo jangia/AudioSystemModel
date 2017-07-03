@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from scipy.fftpack import fft as fft
+from scipy.signal import hann
 from scipy.stats import signaltonoise as snr
 from pymongo import MongoClient
 
@@ -18,8 +19,8 @@ def process_chunk(filename, frequency, chunk, data_len):
         }
     
     # calculate FFT
-    chunk_fft = fft(chunk)
-    
+    chunk_fft = fft(chunk * hann(len(chunk)))
+    print('Working on file: {0}'.format(filename))
     # add FFTs to db_entry
     for i in range(0, data_len):
         db_entry['fft'].append(str(chunk_fft[i]))
@@ -29,6 +30,7 @@ def process_chunk(filename, frequency, chunk, data_len):
     db = client.amp
     
     db.fft.insert_one(db_entry)
+    print('Finsihed for file: {0}'.format(filename))
     
     return 0
 

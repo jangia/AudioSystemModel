@@ -29,7 +29,3 @@ for file in files:
         t = threading.Thread(target=process_chunk, args=(file, frq, chunk, 15000))
         t.daemon = True
         t.start()
-    
-
-
-    
