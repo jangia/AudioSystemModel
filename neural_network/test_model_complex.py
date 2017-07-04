@@ -7,6 +7,8 @@ Created on Fri May 26 17:15:24 2017
 """
 import datetime
 import os
+import random
+
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
@@ -16,8 +18,8 @@ import matplotlib.pyplot as plt
 from scipy.fftpack import fft, ifft
 from scipy.io import wavfile as wav
 
-NUM_SAMPLES_IN = 2500
-NUM_SAMPLES_OUT = 10000
+NUM_SAMPLES_IN = 2000
+NUM_SAMPLES_OUT = 5000
 
 DATA_RANGE = 112
 # create DB connection
@@ -25,16 +27,21 @@ client = MongoClient()
 db = client.amp
 
 AMPS = [0.90 ** i for i in range(0, 26)]
+random.shuffle(AMPS)
 
 model_real = Sequential()
 model_real.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal'))
 model_real.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
+model_real.add(Dense(units=int(NUM_SAMPLES_OUT*3/4), kernel_initializer='normal'))
+#model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
 model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
 model_real.compile(loss='mean_squared_error', optimizer='adam')
 
 model_imag = Sequential()
 model_imag.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal'))
 model_imag.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
+model_imag.add(Dense(units=int(NUM_SAMPLES_OUT*3/4), kernel_initializer='normal'))
+#model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
 model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
 model_imag.compile(loss='mean_squared_error', optimizer='adam')
 
@@ -112,8 +119,8 @@ for amp in AMPS:
     # plt.show()
     # Fit model
     print('Fit model')
-    model_real.fit(X_re, Y_re, batch_size=DATA_RANGE, epochs=12)
-    model_imag.fit(X_im, Y_im, batch_size=DATA_RANGE, epochs=6)
+    model_real.fit(X_re, Y_re, batch_size=int(DATA_RANGE/2), epochs=100)
+    model_imag.fit(X_im, Y_im, batch_size=int(DATA_RANGE/2), epochs=100)
     #
     # y_pred_im = model_imag.predict(X_im[cnt:cnt+1])
     # y_pred_re = model_real.predict(X_re[cnt:cnt+1])
@@ -144,7 +151,7 @@ for amp in AMPS:
 
     cnt += 1
 
-    if cnt == 25:
+    if cnt == len(AMPS)-1:
         for h in range(0, len(X_im)):
             # Predicting the Test set results
             y_pred_im = model_imag.predict(X_im[h:h + 1])
@@ -170,7 +177,7 @@ for amp in AMPS:
             plt.ylabel('Amplitude')
 
             filename = 'g{0}v{1}f{2}a{3}'.format(str(gain), str(volume), str(f[h]), str(amp)).replace('.', '_')
-            plt.savefig('/home/jangia/Documents/Mag/MaisterAmpSim/neural_network/plots/{0}.png'.format(filename))
+            plt.savefig('/home/jangia/Documents/Mag/AudioSystemModel/neural_network/plots/{0}.png'.format(filename))
 
             plt.close(fig)
 
