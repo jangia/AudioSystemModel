@@ -3,11 +3,11 @@ from scipy.fftpack import fft as fft
 from scipy.signal import hann
 from scipy.stats import signaltonoise as snr
 from pymongo import MongoClient
+import numpy as np
 
 
 def process_chunk(filename, frequency, chunk, data_len):
-    
-    
+
     # database entry
     db_entry = {
         "gain": filename[1],
@@ -15,7 +15,8 @@ def process_chunk(filename, frequency, chunk, data_len):
         "frequency": frequency,
         "amp": filename[5:-4].replace('_', '.'),
         "snr": str(snr(chunk)),
-        "fft":[]
+        "fft_real": {},
+        "fft_imag": {}
         }
     
     # calculate FFT
@@ -23,7 +24,10 @@ def process_chunk(filename, frequency, chunk, data_len):
     print('Working on file: {0}'.format(filename))
     # add FFTs to db_entry
     for i in range(0, data_len):
-        db_entry['fft'].append(str(chunk_fft[i]))
+        #db_entry['fft_real'].append(float(np.real(chunk_fft[i])))
+        #db_entry['fft_imag'].append(float(np.imag(chunk_fft[i])))
+        db_entry['fft_real'][str(i)] = (float(np.real(chunk_fft[i])))
+        db_entry['fft_imag'][str(i)] = (float(np.real(chunk_fft[i])))
       
     # database  
     client = MongoClient()
@@ -34,13 +38,15 @@ def process_chunk(filename, frequency, chunk, data_len):
     
     return 0
 
+
 def fft_to_db(wave, samples, frequency, amplitude, data_len):
     
     # database entry
     db_entry = {
         "frequency": str(frequency) + '',
         "amp": str(amplitude) + '',
-        "fft":[]
+        "fft_real": {},
+        "fft_imag": {}
         }
     
     # calculate FFT
@@ -48,8 +54,11 @@ def fft_to_db(wave, samples, frequency, amplitude, data_len):
     
     # add FFTs to db_entry
     for i in range(0, data_len):
-        db_entry['fft'].append(str(chunk_fft[i]))
-      
+        #db_entry['fft_real'].append(float(np.real(chunk_fft[i])))
+        #db_entry['fft_imag'].append(float(np.imag(chunk_fft[i])))
+        db_entry['fft_real'][str(i)] = (float(np.real(chunk_fft[i])))
+        db_entry['fft_imag'][str(i)] = (float(np.real(chunk_fft[i])))
+
     # database  
     client = MongoClient()
     db = client.amp

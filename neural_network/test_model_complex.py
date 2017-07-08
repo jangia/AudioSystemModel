@@ -13,36 +13,49 @@ import pandas as pd
 import numpy as np
 from pymongo import MongoClient
 from keras.models import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, Activation
 import matplotlib.pyplot as plt
 from scipy.fftpack import fft, ifft
 from scipy.io import wavfile as wav
+from keras.layers.advanced_activations import LeakyReLU, ELU, ThresholdedReLU
 
-NUM_SAMPLES_IN = 2000
-NUM_SAMPLES_OUT = 5000
+NUM_SAMPLES_IN = 1500
+NUM_SAMPLES_OUT = 2500
 
-DATA_RANGE = 112
+DATA_RANGE = 56
 # create DB connection
 client = MongoClient()
 db = client.amp
 
-AMPS = [0.90 ** i for i in range(0, 26)]
+AMPS = [0.90 ** i for i in range(8, 12)]
 random.shuffle(AMPS)
+
+alpha = 0.1
 
 model_real = Sequential()
 model_real.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal'))
+model_real.add(LeakyReLU(alpha=alpha))
 model_real.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
-model_real.add(Dense(units=int(NUM_SAMPLES_OUT*3/4), kernel_initializer='normal'))
-#model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
+model_real.add(LeakyReLU(alpha=alpha))
+model_real.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
+model_real.add(LeakyReLU(alpha=alpha))
+# model_real.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
+# model_real.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
 model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
+model_real.add(LeakyReLU(alpha=alpha))
 model_real.compile(loss='mean_squared_error', optimizer='adam')
 
 model_imag = Sequential()
-model_imag.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal'))
+model_imag.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal', activation='relu'))
+model_imag.add(LeakyReLU(alpha=alpha))
+model_imag.add(Dense(units=int(NUM_SAMPLES_OUT/4), kernel_initializer='normal'))
+model_imag.add(LeakyReLU(alpha=alpha))
 model_imag.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
-model_imag.add(Dense(units=int(NUM_SAMPLES_OUT*3/4), kernel_initializer='normal'))
-#model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
+model_imag.add(LeakyReLU(alpha=alpha))
+# model_imag.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
+# model_imag.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
 model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
+model_imag.add(LeakyReLU(alpha=alpha))
 model_imag.compile(loss='mean_squared_error', optimizer='adam')
 
 cnt = 0
@@ -104,6 +117,9 @@ for amp in AMPS:
                 X_im[i][j + 2] = np.imag(np.char.replace(X3[i][j], '', '').astype(np.complex128))
                 X_test[i][j] = np.char.replace(X3[i][j], '', '').astype(np.complex128)
 
+        Y_re[i][0] = 1e-4
+        Y_im[i][0] = 1e-4
+
     # fig = plt.figure()
     #
     # plt.subplot(2, 1, 1)
@@ -119,8 +135,8 @@ for amp in AMPS:
     # plt.show()
     # Fit model
     print('Fit model')
-    model_real.fit(X_re, Y_re, batch_size=int(DATA_RANGE/2), epochs=100)
-    model_imag.fit(X_im, Y_im, batch_size=int(DATA_RANGE/2), epochs=100)
+    model_real.fit(X_re, Y_re, batch_size=int(DATA_RANGE/2), epochs=50)
+    model_imag.fit(X_im, Y_im, batch_size=int(DATA_RANGE/2), epochs=50)
     #
     # y_pred_im = model_imag.predict(X_im[cnt:cnt+1])
     # y_pred_re = model_real.predict(X_re[cnt:cnt+1])
@@ -149,8 +165,6 @@ for amp in AMPS:
     #
     # plt.close(fig)
 
-    cnt += 1
-
     if cnt == len(AMPS)-1:
         for h in range(0, len(X_im)):
             # Predicting the Test set results
@@ -164,6 +178,7 @@ for amp in AMPS:
                 y_pred[i] = y_pred_re[0][i] + 1j * y_pred_im[0][i]
                 y_meas[i] = Y_re[h][i] + 1j * Y_im[h][i]
 
+            print(max(y_pred))
             fig = plt.figure()
 
             plt.subplot(2, 1, 1)
@@ -180,6 +195,8 @@ for amp in AMPS:
             plt.savefig('/home/jangia/Documents/Mag/AudioSystemModel/neural_network/plots/{0}.png'.format(filename))
 
             plt.close(fig)
+
+    cnt += 1
 
     print('Finished at: ' + str(datetime.datetime.now()))
 

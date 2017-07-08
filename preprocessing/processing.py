@@ -7,8 +7,8 @@ Created on Thu May 25 12:25:31 2017
 """
 import os
 import threading
-from process_record.edit_record import cut_record
-from process_record.process_chunk import process_chunk
+from preprocessing.process_record.edit_record import cut_record
+from preprocessing.process_record.process_chunk import process_chunk
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath('processing.py')))
@@ -25,7 +25,6 @@ for file in files:
     
     for frq, chunk in audio_chunks.items():
         # run proccessing
-        
         t = threading.Thread(target=process_chunk, args=(file, frq, chunk, 15000))
         t.daemon = True
         t.start()

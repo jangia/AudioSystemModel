@@ -14,7 +14,7 @@ def cut_record(filepath, step, samples=40000, num_of_chunks=2, offset=0):
     audio_data = [(ele/2**16.) for ele in audio]
     chunks = {}
     print('Start to cut to chunks for:{0}'.format(filepath))
-    for i in range(0, num_of_chunks - 1):
+    for i in range(0, num_of_chunks-1):
         start = i * step + offset
         stop = start + samples
         
