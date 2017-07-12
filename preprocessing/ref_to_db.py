@@ -22,12 +22,12 @@ for amp in AMPS:
 
     samples = np.zeros(shape=(1))
     
-    for i in range(-30, 27):
+    for i in range(-30, 8):
                 f = 440 * (2 ** (1 / 12)) ** i
                 t = np.arange(FS * T_END)
                 sine_wave = amp * np.sin(2 * np.pi * f * t / FS)
                 
-                t = threading.Thread(target=fft_to_db, args = (sine_wave,80000, f, amp, 15000))
+                t = threading.Thread(target=fft_to_db, args=(sine_wave, 80000, f, amp, 15000))
                 t.daemon = True
                 t.start()
-    
+

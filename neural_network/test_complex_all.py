@@ -6,6 +6,7 @@ Created on Fri May 26 17:15:24 2017
 @author: jangia
 """
 import datetime
+import json
 import os
 import random
 
@@ -19,10 +20,11 @@ from scipy.fftpack import fft, ifft
 from scipy.io import wavfile as wav
 from keras.layers.advanced_activations import LeakyReLU, ELU, ThresholdedReLU
 
-NUM_SAMPLES_IN = 4500
-NUM_SAMPLES_OUT = 1500
+NUM_SAMPLES_IN = 6000
+NUM_SAMPLES_OUT = 1200
+LEVEL_DROP = 600
 
-DATA_RANGE = 1456
+DATA_RANGE = 1924
 # create DB connection
 client = MongoClient()
 db = client.amp
@@ -31,9 +33,10 @@ alpha = 0.3
 activation = 'linear'
 
 model_real = Sequential()
-model_real.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal', activation=activation))
-#model_real.add(Dense(units=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation))
-model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
+model_real.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal', activation='relu'))
+model_real.add(Dense(units=NUM_SAMPLES_IN - 1 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
+model_real.add(Dense(units=NUM_SAMPLES_IN - 2 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
+model_real.add(Dense(units=NUM_SAMPLES_IN - 3 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
 model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 #model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 #model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
@@ -44,12 +47,14 @@ model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activat
 #model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 #model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
 # model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
-model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
+#model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 model_real.compile(loss='mean_squared_error', optimizer='adam')
 
 model_imag = Sequential()
-model_imag.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal', activation=activation))
-model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
+model_imag.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal', activation='relu'))
+model_imag.add(Dense(units=NUM_SAMPLES_IN - 1 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
+model_imag.add(Dense(units=NUM_SAMPLES_IN - 2 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
+model_imag.add(Dense(units=NUM_SAMPLES_IN - 3 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
 model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 #model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 #model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
@@ -60,7 +65,7 @@ model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activat
 #model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 # model_imag.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
 # model_imag.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
-model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
+#model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 model_imag.compile(loss='mean_squared_error', optimizer='adam')
 
 cnt = 0
@@ -80,56 +85,51 @@ dataset = dataset.sample(frac=1).reset_index(drop=True)
 f = dataset.iloc[:, 3].values
 
 # Set amplitude and input FFT as input data
-gain = np.float64(dataset.iloc[:, -5].values)[0]
-volume = np.float64(dataset.iloc[:, -3].values)[0]
+gain = dataset.iloc[:, -6].values.astype('float64')
+volume = dataset.iloc[:, -4].values.astype('float64')
 
-X3 = dataset.iloc[:, -1].values
+# Initialize X
+X_raw_re = dataset.iloc[:, -1].values
+X_raw_im = dataset.iloc[:, -2].values
 
 # Initialize X
 X_re = np.empty([DATA_RANGE, NUM_SAMPLES_IN+2])
 X_im = np.empty([DATA_RANGE, NUM_SAMPLES_IN+2])
 
 # Set output FFT
-Y1 = dataset.iloc[:, 2].values
+Y_raw_re = dataset.iloc[:, 3].values
+Y_raw_im = dataset.iloc[:, 2].values
 
 # Initialize real and imag array of output FFT
 Y_re = np.empty([DATA_RANGE, NUM_SAMPLES_OUT])
 Y_im = np.empty([DATA_RANGE, NUM_SAMPLES_OUT])
 
-Y_test = np.empty([DATA_RANGE, NUM_SAMPLES_OUT], dtype='complex128')
-X_test = np.empty([DATA_RANGE, NUM_SAMPLES_OUT], dtype='complex128')
-
 print('X and Y initialized')
 print('Filling X and Y with values from database')
 # Convert from string to complex and amplitude
-for i in range(0, len(X3)):
+for i in range(0, DATA_RANGE):
 
-    X_re[i][0] = gain
-    X_re[i][1] = volume
-    X_im[i][0] = gain
-    X_im[i][1] = volume
+    X_re[i][0] = gain[i]
+    X_re[i][1] = volume[i]
+    X_im[i][0] = gain[i]
+    X_im[i][1] = volume[i]
 
     for j in range(0, max(NUM_SAMPLES_OUT, NUM_SAMPLES_IN)):
 
         if j < NUM_SAMPLES_OUT:
-            Y_re[i][j] = np.real(np.char.replace(Y1[i][j], '', '').astype(np.complex128))
-            Y_im[i][j] = np.imag(np.char.replace(Y1[i][j], '', '').astype(np.complex128))
+            Y_re[i][j] = Y_raw_re[i][j]
+            Y_im[i][j] = Y_raw_im[i][j]
 
         if j < NUM_SAMPLES_IN:
-            X_re[i][j + 2] = np.real(np.char.replace(X3[i][j], '', '').astype(np.complex128))
-            X_im[i][j + 2] = np.imag(np.char.replace(X3[i][j], '', '').astype(np.complex128))
+            X_re[i][j + 2] = X_raw_re[i][j]
+            X_im[i][j + 2] = X_raw_im[i][j]
 
-    Y_re[i][0] = 1e-4
-    Y_im[i][0] = 1e-4
-# clear big variables
-fft_ref_all = []
-fft_all = []
-X3 = []
-Y1 = []
+
+print('X and Y initialized')
 
 print('Fit model')
-model_real.fit(X_re, Y_re, batch_size=10, epochs=1000)
-model_imag.fit(X_im, Y_im, batch_size=10, epochs=1000)
+model_real.fit(X_re, Y_re, batch_size=100, epochs=250)
+model_imag.fit(X_im, Y_im, batch_size=100, epochs=250)
 
 
 # if cnt == len(AMPS)-1:

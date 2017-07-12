@@ -11,20 +11,48 @@ from preprocessing.process_record.edit_record import cut_record
 from preprocessing.process_record.process_chunk import process_chunk
 
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath('processing.py')))
+class AudioFftToDb:
 
-REC_PATH = os.path.join(BASE_DIR, 'recordings')
+    def __init__(self, sample_rate=96000, fft_samples=80000, num_chunks=38, offset=10000, fft_db_len=20000):
+        self.sample_rate = sample_rate
+        self.fft_samples = fft_samples
+        self.num_chunks = num_chunks
+        self.offset = offset
+        self.fft_db_len = fft_db_len
+        self.rec_path = self.set_filepath()
 
-files = [f for f in os.listdir(REC_PATH) if os.path.isfile(os.path.join(REC_PATH, f))]
+    def set_filepath(self):
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath('processing.py')))
+
+        return os.path.join(base_dir, 'recordings')
+
+    def get_files(self):
+
+        return [f for f in os.listdir(self.rec_path) if os.path.isfile(os.path.join(self.rec_path, f))]
+
+    def process_files(self):
+
+        files = self.get_files()
+
+        for file in files:
+
+            # chunk file
+            audio_chunks = cut_record(
+                os.path.join(self.rec_path, file),
+                self.sample_rate,
+                self.fft_samples,
+                self.num_chunks,
+                self.offset
+            )
+
+            for frq, chunk in audio_chunks.items():
+                # run proccessing
+                t = threading.Thread(target=process_chunk, args=(file, frq, chunk, 15000))
+                t.daemon = True
+                t.start()
 
 
-for file in files:
-    
-    # chunk file
-    audio_chunks = cut_record(os.path.join(REC_PATH, file), 96000, 80000, 57, 10000)
-    
-    for frq, chunk in audio_chunks.items():
-        # run proccessing
-        t = threading.Thread(target=process_chunk, args=(file, frq, chunk, 15000))
-        t.daemon = True
-        t.start()
+if __name__=='__main__':
+    audio_to_db = AudioFftToDb()
+    audio_to_db.process_files()

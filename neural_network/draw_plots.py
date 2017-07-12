@@ -1,6 +1,6 @@
 import datetime
-import os
-import random
+import json
+from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
@@ -56,7 +56,7 @@ Y_im = dataset.iloc[:, 2].values
 Y = np.empty([len(Y_im[0])], dtype='complex128')
 X = np.empty([len(Y_im[0])], dtype='complex128')
 
-for i in range(0, len(Y_im)):
+for i in range(0, len(Y_im[0])):
     Y[i] = Y_re[0][i] + 1j * Y_im[0][i]
     X[i] = X_re[0][i] + 1j * X_im[0][i]
 
@@ -74,3 +74,5 @@ plt.ylabel('Amplitude')
 
 
 plt.show()
+
+print('End')
