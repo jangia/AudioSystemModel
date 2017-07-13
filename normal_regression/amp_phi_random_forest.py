@@ -7,7 +7,7 @@ import datetime
 import json
 import os
 import random
-
+from sklearn.externals import joblib
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
@@ -159,3 +159,6 @@ plt.savefig('/home/jangia/Documents/Mag/AudioSystemModel/neural_network/plots/{0
 plt.close(fig)
 
 # save model
+BASE_DIR = os.path.dirname(os.path.abspath('test_model_amp_phi.py'))
+joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_amp.h5'))
+joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_phi.h5'))
