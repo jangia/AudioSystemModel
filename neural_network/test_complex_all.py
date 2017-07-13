@@ -14,17 +14,17 @@ import pandas as pd
 import numpy as np
 from pymongo import MongoClient
 from keras.models import Sequential
-from keras.layers import Dense, Activation
+from keras.layers import Dense, Activation, GaussianNoise
 import matplotlib.pyplot as plt
 from scipy.fftpack import fft, ifft
 from scipy.io import wavfile as wav
 from keras.layers.advanced_activations import LeakyReLU, ELU, ThresholdedReLU
 
-NUM_SAMPLES_IN = 6000
+NUM_SAMPLES_IN = 1200
 NUM_SAMPLES_OUT = 1200
 LEVEL_DROP = 600
 
-DATA_RANGE = 1924
+DATA_RANGE = 2886
 # create DB connection
 client = MongoClient()
 db = client.amp
@@ -33,10 +33,12 @@ alpha = 0.3
 activation = 'linear'
 
 model_real = Sequential()
-model_real.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal', activation='relu'))
-model_real.add(Dense(units=NUM_SAMPLES_IN - 1 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
-model_real.add(Dense(units=NUM_SAMPLES_IN - 2 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
-model_real.add(Dense(units=NUM_SAMPLES_IN - 3 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
+model_real.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal', activation='linear'))
+#model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
+model_real.add(GaussianNoise(0.3))
+model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
+model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
+model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 #model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 #model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
@@ -48,13 +50,13 @@ model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activat
 #model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
 # model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal'))
 #model_real.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
-model_real.compile(loss='mean_squared_error', optimizer='adam')
+model_real.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
 
 model_imag = Sequential()
-model_imag.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal', activation='relu'))
-model_imag.add(Dense(units=NUM_SAMPLES_IN - 1 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
-model_imag.add(Dense(units=NUM_SAMPLES_IN - 2 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
-model_imag.add(Dense(units=NUM_SAMPLES_IN - 3 * LEVEL_DROP, kernel_initializer='normal', activation=activation))
+model_imag.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN+2, kernel_initializer='normal', activation='linear'))
+model_imag.add(Dense(units=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation))
+model_imag.add(Dense(units=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation))
+model_imag.add(Dense(units=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation))
 model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 #model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
 #model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
@@ -66,7 +68,7 @@ model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activat
 # model_imag.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
 # model_imag.add(Dense(units=int(NUM_SAMPLES_OUT/2), kernel_initializer='normal'))
 #model_imag.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
-model_imag.compile(loss='mean_squared_error', optimizer='adam')
+model_imag.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
 
 cnt = 0
 
@@ -128,9 +130,41 @@ for i in range(0, DATA_RANGE):
 print('X and Y initialized')
 
 print('Fit model')
-model_real.fit(X_re, Y_re, batch_size=100, epochs=250)
-model_imag.fit(X_im, Y_im, batch_size=100, epochs=250)
+history_real = model_real.fit(X_re, Y_re, batch_size=39, epochs=100)
+history_imag = model_imag.fit(X_im, Y_im, batch_size=39, epochs=100)
 
+#  "Accuracy"
+plt.subplot(2, 1, 1)
+plt.plot(history_real.history['acc'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'validation'], loc='upper left')
+
+# "Loss"
+plt.subplot(2, 1, 2)
+plt.plot(history_real.history['loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'validation'], loc='upper left')
+plt.show()
+
+plt.subplot(2, 1, 1)
+plt.plot(history_imag.history['acc'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'validation'], loc='upper left')
+
+# "Loss"
+plt.subplot(2, 1, 2)
+plt.plot(history_imag.history['loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'validation'], loc='upper left')
+plt.show()
 
 # if cnt == len(AMPS)-1:
 #    for h in range(0, len(X_im)):

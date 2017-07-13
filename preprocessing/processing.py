@@ -13,13 +13,14 @@ from preprocessing.process_record.process_chunk import process_chunk
 
 class AudioFftToDb:
 
-    def __init__(self, sample_rate=96000, fft_samples=80000, num_chunks=38, offset=10000, fft_db_len=20000):
+    def __init__(self, sample_rate=96000, fft_samples=80000, num_chunks=38, offset=10000, fft_db_len=20000, file_pattern='*'):
         self.sample_rate = sample_rate
         self.fft_samples = fft_samples
         self.num_chunks = num_chunks
         self.offset = offset
         self.fft_db_len = fft_db_len
         self.rec_path = self.set_filepath()
+        self.file_pattern = file_pattern
 
     def set_filepath(self):
 
@@ -37,22 +38,23 @@ class AudioFftToDb:
 
         for file in files:
 
-            # chunk file
-            audio_chunks = cut_record(
-                os.path.join(self.rec_path, file),
-                self.sample_rate,
-                self.fft_samples,
-                self.num_chunks,
-                self.offset
-            )
+            if self.file_pattern in file or self.file_pattern == '*':
+                # chunk file
+                audio_chunks = cut_record(
+                    os.path.join(self.rec_path, file),
+                    self.sample_rate,
+                    self.fft_samples,
+                    self.num_chunks,
+                    self.offset
+                )
 
-            for frq, chunk in audio_chunks.items():
-                # run proccessing
-                t = threading.Thread(target=process_chunk, args=(file, frq, chunk, 15000))
-                t.daemon = True
-                t.start()
+                for frq, chunk in audio_chunks.items():
+                    # run proccessing
+                    t = threading.Thread(target=process_chunk, args=(file, frq, chunk, 15000))
+                    t.daemon = True
+                    t.start()
 
 
 if __name__=='__main__':
-    audio_to_db = AudioFftToDb()
+    audio_to_db = AudioFftToDb(file_pattern='g3v7')
     audio_to_db.process_files()
