@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 
 NUM_SAMPLES_IN = 10000
 NUM_SAMPLES_OUT = 10000
-LEVEL_DROP = 1200
 
 DATA_RANGE = 5324
 # create DB connection
@@ -73,7 +72,7 @@ Y_amp = np.empty([DATA_RANGE, NUM_SAMPLES_OUT])
 Y_phi = np.empty([DATA_RANGE, NUM_SAMPLES_OUT])
 
 print('X and Y initialized')
-print('Filling X and Y with values from database')
+print('Filling X and Y with values from database' + str(datetime.datetime.now()))
 # Convert from real and imag to phase and amplitude
 for i in range(0, DATA_RANGE):
 
@@ -85,18 +84,23 @@ for i in range(0, DATA_RANGE):
     for j in range(0, max(NUM_SAMPLES_OUT, NUM_SAMPLES_IN)):
 
         if j < NUM_SAMPLES_OUT:
-            Y_amp[i][j] = np.abs(Y_raw_re[i][j] + 1j * Y_raw_im[i][j])
-            Y_phi[i][j] = np.arctan(Y_raw_im[i][j]/Y_raw_re[i][j])
+            y_i = Y_raw_re[i][j] + 1j * Y_raw_im[i][j]
+            Y_amp[i][j] = np.abs(y_i)
+            Y_phi[i][j] = np.unwrap(np.angle(np.array([y_i])))
 
         if j < NUM_SAMPLES_IN:
-            X_amp[i][j + 2] = np.abs(X_raw_re[i][j] + 1j * X_raw_im[i][j])
-            X_phi[i][j + 2] = np.arctan(X_raw_im[i][j]/Y_raw_re[i][j])
+            x_i = X_raw_re[i][j] + 1j * X_raw_im[i][j]
+            X_amp[i][j + 2] = np.abs(x_i)
+            X_phi[i][j + 2] = np.unwrap(np.angle(np.array([x_i])))
+
+print('X and Y filled: ' + str(datetime.datetime.now()))
 
 regressor_amp = RandomForestRegressor(n_estimators=4, verbose=3, n_jobs=2)
 regressor_phi = RandomForestRegressor(n_estimators=4, verbose=3, n_jobs=2)
-print('Fit model')
+print('Fit model at: ' + str(datetime.datetime.now()))
 regressor_amp.fit(X_amp, Y_amp)
 regressor_phi.fit(X_phi, Y_phi)
+print('Model fitted at: ' + str(datetime.datetime.now()))
 
 # Predicting the Test set results
 # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath('audio_processing.py')))
@@ -107,7 +111,7 @@ FS = 48000
 T_END = 1
 
 t = np.arange(FS * T_END)
-chunk = 0.9**6 * np.sin(2 * np.pi * 440 * t / FS)
+chunk = 0.5 * np.sin(2 * np.pi * 440 * t / FS)
 fft_data = fft(chunk[:40000] * hann(40000))[:NUM_SAMPLES_IN]
 
 # fft_data = fft(audio_data[40000:60000])[:10000]
@@ -149,16 +153,18 @@ plt.title('Original vs Modeled')
 plt.ylabel('Amplitude')
 
 plt.subplot(2, 1, 2)
-plt.semilogy(abs(y_pred[0]), 'b')
+plt.semilogy(abs(y_pred), 'b')
 plt.title('Original vs Modeled')
 plt.ylabel('Amplitude')
 
 filename = 'guitar'
-plt.savefig('/home/jangia/Documents/Mag/AudioSystemModel/neural_network/plots/{0}_{1}.png'.format(filename, datetime.datetime.now()))
+plt.savefig('/home/jangia/Documents/Mag/AudioSystemModel/normal_regression/plots/{0}_{1}.png'.format(filename, datetime.datetime.now()))
 
 plt.close(fig)
 
 # save model
-BASE_DIR = os.path.dirname(os.path.abspath('test_model_amp_phi.py'))
-joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_amp.h5'))
-joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_phi.h5'))
+BASE_DIR = os.path.dirname(os.path.abspath('amp_phi_random_forest.py'))
+joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_amp.pkl'))
+joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_phi.pkl'))
+
+print('Finished at: ' + str(datetime.datetime.now()))
