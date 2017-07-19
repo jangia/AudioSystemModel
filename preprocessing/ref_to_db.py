@@ -12,7 +12,7 @@ from preprocessing.process_record.process_chunk import fft_to_db
 
 
 AMPS = [0.90**i for i in range(0, 26)]
-FS = 20000
+FS = 96000
 F0 = 10
 F1 = 2000
 T_END = 1
@@ -27,7 +27,7 @@ for amp in AMPS:
                 t = np.arange(FS * T_END)
                 sine_wave = amp * np.sin(2 * np.pi * f * t / FS)
                 
-                t = threading.Thread(target=fft_to_db, args=(sine_wave, 20000, f, amp, 15000))
+                t = threading.Thread(target=fft_to_db, args=(sine_wave, 24000, f, amp, 12000))
                 t.daemon = True
                 t.start()
 

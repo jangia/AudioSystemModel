@@ -6,6 +6,7 @@ from scipy.signal import hann
 from scipy.stats import signaltonoise as snr
 from pymongo import MongoClient
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def process_chunk(filename, frequency, chunk, data_len):
@@ -25,7 +26,12 @@ def process_chunk(filename, frequency, chunk, data_len):
 
     # calculate FFT
     chunk_fft = fft(chunk)
-    print('Working on file: {0}'.format(filename))
+
+    # plt.semilogy(abs(chunk_fft[:1500]), 'b')
+    # plt.title('Original vs Modeled')
+    # plt.ylabel('Amplitude')
+    # plt.show()
+
     # add FFTs to db_entry
     for i in range(0, data_len):
         fft_real.append(float(np.real(chunk_fft[i])))

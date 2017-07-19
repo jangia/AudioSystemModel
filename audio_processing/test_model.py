@@ -14,7 +14,7 @@ model_path = os.path.join(BASE_DIR, 'normal_regression', 'models', 'test_model_r
 model_amp = joblib.load('{path}_{type}.pkl'.format(path=model_path, type='amp'))
 model_phi = joblib.load('{path}_{type}.pkl'.format(path=model_path, type='phi'))
 
-FS = 20000
+FS = 96000
 T_END = 1
 
 t = np.arange(FS * T_END)
@@ -23,7 +23,7 @@ chunk = 0.9**6 * np.sin(2 * np.pi * 440 * t / FS)
 # REC_PATH = os.path.join(BASE_DIR, 'guitar', 'Middle.wav')
 #
 # rate, chunk = wav.read(os.path.join(BASE_DIR, REC_PATH))
-fft_data_all = fft(chunk[:20000])
+fft_data_all = fft(chunk[:24000])
 fft_data = fft_data_all[:NUM_SAMPLES_IN]
 
 # fft_data = fft(audio_data[40000:60000])[:10000]
@@ -48,7 +48,7 @@ for i in range(0, NUM_SAMPLES_OUT):
     y_pred[i] = y_pred_amp[0][i] * np.cos(y_pred_phi[0][i]) + 1j * y_pred_amp[0][i] * np.sin(y_pred_phi[0][i])
 
 plt.subplot(4, 1, 1)
-plt.plot(chunk[:1200], 'y')
+plt.plot(chunk, 'y')
 plt.title('Original vs Modeled')
 plt.ylabel('Amplitude')
 

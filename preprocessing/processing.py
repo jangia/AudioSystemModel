@@ -13,7 +13,7 @@ from preprocessing.process_record.process_chunk import process_chunk
 
 class AudioFftToDb:
 
-    def __init__(self, sample_rate=96000, fft_samples=96000, num_chunks=38, offset=10000, fft_db_len=20000, file_pattern='*'):
+    def __init__(self, sample_rate=96000, fft_samples=24000, num_chunks=38, offset=10000, fft_db_len=12000, file_pattern='*'):
         self.sample_rate = sample_rate
         self.fft_samples = fft_samples
         self.num_chunks = num_chunks
@@ -50,9 +50,10 @@ class AudioFftToDb:
 
                 for frq, chunk in audio_chunks.items():
                     # run proccessing
-                    t = threading.Thread(target=process_chunk, args=(file, frq, chunk, 15000))
+                    t = threading.Thread(target=process_chunk, args=(file, frq, chunk, self.fft_db_len))
                     t.daemon = True
                     t.start()
+                    #process_chunk(file, frq, chunk, self.fft_db_len)
 
 
 if __name__=='__main__':
