@@ -13,7 +13,7 @@ from preprocessing.process_record.process_chunk import process_chunk
 
 class AudioFftToDb:
 
-    def __init__(self, sample_rate=96000, fft_samples=80000, num_chunks=38, offset=10000, fft_db_len=20000, file_pattern='*'):
+    def __init__(self, sample_rate=96000, fft_samples=96000, num_chunks=38, offset=10000, fft_db_len=20000, file_pattern='*'):
         self.sample_rate = sample_rate
         self.fft_samples = fft_samples
         self.num_chunks = num_chunks
@@ -56,5 +56,5 @@ class AudioFftToDb:
 
 
 if __name__=='__main__':
-    audio_to_db = AudioFftToDb(file_pattern='g3v7')
+    audio_to_db = AudioFftToDb(file_pattern='*')
     audio_to_db.process_files()

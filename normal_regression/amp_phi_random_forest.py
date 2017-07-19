@@ -16,8 +16,8 @@ from scipy.signal import hann
 from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
 
-NUM_SAMPLES_IN = 10000
-NUM_SAMPLES_OUT = 10000
+NUM_SAMPLES_IN = 1200
+NUM_SAMPLES_OUT = 1200
 
 DATA_RANGE = 5324
 # create DB connection
@@ -27,8 +27,8 @@ db = client.amp
 print('Started at: ' + str(datetime.datetime.now()))
 
 # Get all FFTs
-fft_ref_all = pd.DataFrame(list(db.fft_ref.find({})))
-fft_all = pd.DataFrame(list(db.fft.find(
+fft_ref_all = pd.DataFrame(list(db.fft_ref_no_hann.find({})))
+fft_all = pd.DataFrame(list(db.fft_no_hann.find(
     {
     'amp': {
         '$nin': [
@@ -164,7 +164,7 @@ plt.close(fig)
 
 # save model
 BASE_DIR = os.path.dirname(os.path.abspath('amp_phi_random_forest.py'))
-joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_amp.pkl'))
-joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_phi.pkl'))
+joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_no_hann_amp.pkl'))
+joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_no_hann_phi.pkl'))
 
 print('Finished at: ' + str(datetime.datetime.now()))

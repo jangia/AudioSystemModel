@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath('audio_processing.py')))
-NUM_SAMPLES_IN = 10000
-NUM_SAMPLES_OUT = 10000
+NUM_SAMPLES_IN = 1200
+NUM_SAMPLES_OUT = 1200
 
 
 class AudioProcessor:
 
-    def __init__(self, audio, samples_length=10000, overlap=5000, gain=4, volume=4, model_name='test_model_random_forest'):
+    def __init__(self, audio, samples_length=10000, overlap=5000, gain=4, volume=4, model_name='test_model_random_forest_no_hann'):
         self.audio = [(ele/2**16.) for ele in audio]  # normalize audio
         self.samples_length = samples_length
         self.overlap = overlap
@@ -91,7 +91,17 @@ class AudioProcessor:
         model_amp = self.model_amp
         model_phi = self.model_phi
 
-        fft_data = chunk[:10000]
+        FS = 20000
+        T_END = 1
+
+        t = np.arange(FS * T_END)
+        chunk = 0.9 ** 6 * np.sin(2 * np.pi * 440 * t / FS)
+        # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath('audio_processing.py')))
+        # REC_PATH = os.path.join(BASE_DIR, 'guitar', 'Middle.wav')
+        #
+        # rate, chunk = wav.read(os.path.join(BASE_DIR, REC_PATH))
+        fft_data_all = fft(chunk[:20000])
+        fft_data = fft_data_all[:1200]
         # fft_data = fft(audio_data[40000:60000])[:10000]
 
         fft_data_amp = np.empty([1, NUM_SAMPLES_IN + 2])
@@ -114,15 +124,15 @@ class AudioProcessor:
             y_pred[i] = y_pred_amp[0][i] * np.cos(y_pred_phi[0][i]) + 1j * y_pred_amp[0][i] * np.sin(y_pred_phi[0][i])
 
         plt.subplot(2, 1, 1)
-        plt.semilogy(abs(y_pred), 'b')
-        plt.title('Original vs Modeled')
-        plt.ylabel('Amplitude')
-
-        plt.subplot(2, 1, 2)
-        plt.plot(ifft(y_pred), 'b')
-        plt.title('Original vs Modeled')
-        plt.ylabel('Amplitude')
-        plt.show()
+        # plt.semilogy(abs(y_pred), 'b')
+        # plt.title('Original vs Modeled')
+        # plt.ylabel('Amplitude')
+        #
+        # plt.subplot(2, 1, 2)
+        # plt.plot(ifft(y_pred), 'b')
+        # plt.title('Original vs Modeled')
+        # plt.ylabel('Amplitude')
+        # plt.show()
 
         self.processed_audio[key] = y_pred
 
@@ -175,5 +185,5 @@ if __name__== '__main__':
 
     rate, audio_data = wav.read(os.path.join(BASE_DIR, REC_PATH))
 
-    audio_processor = AudioProcessor(audio_data)
+    audio_processor = AudioProcessor(audio_data, samples_length=1200, overlap=0)
     audio_processor.main_processing()
