@@ -25,7 +25,7 @@ def process_chunk(filename, frequency, chunk, data_len):
     fft_imag = []
 
     # calculate FFT
-    chunk_fft = fft(chunk)
+    chunk_fft = fft(chunk * hann(len(chunk)))
 
     # plt.semilogy(abs(chunk_fft[:1500]), 'b')
     # plt.title('Original vs Modeled')
@@ -44,7 +44,7 @@ def process_chunk(filename, frequency, chunk, data_len):
     client = MongoClient()
     db = client.amp
     
-    db.fft_no_hann.insert_one(db_entry)
+    db.fft.insert_one(db_entry)
     print('Finsihed for file: {0}'.format(filename))
     
     return 0
@@ -64,7 +64,7 @@ def fft_to_db(wave, samples, frequency, amplitude, data_len):
     fft_imag = []
     
     # calculate FFT
-    chunk_fft = fft(wave[0: samples])
+    chunk_fft = fft(wave[0: samples] * hann(samples))
     
     # add FFTs to db_entry
     for i in range(0, data_len):
@@ -78,6 +78,6 @@ def fft_to_db(wave, samples, frequency, amplitude, data_len):
     client = MongoClient()
     db = client.amp
     
-    db.fft_ref_no_hann.insert_one(db_entry)
+    db.fft_ref.insert_one(db_entry)
     
     return 0

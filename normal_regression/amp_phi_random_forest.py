@@ -16,8 +16,8 @@ from scipy.signal import hann
 from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
 
-NUM_SAMPLES_IN = 1200
-NUM_SAMPLES_OUT = 1200
+NUM_SAMPLES_IN = 12000
+NUM_SAMPLES_OUT = 12000
 
 DATA_RANGE = 5324
 # create DB connection
@@ -27,8 +27,8 @@ db = client.amp
 print('Started at: ' + str(datetime.datetime.now()))
 
 # Get all FFTs
-fft_ref_all = pd.DataFrame(list(db.fft_ref_no_hann.find({})))
-fft_all = pd.DataFrame(list(db.fft_no_hann.find(
+fft_ref_all = pd.DataFrame(list(db.fft_ref.find({})))
+fft_all = pd.DataFrame(list(db.fft.find(
     {
     'amp': {
         '$nin': [
@@ -95,8 +95,8 @@ for i in range(0, DATA_RANGE):
 
 print('X and Y filled: ' + str(datetime.datetime.now()))
 
-regressor_amp = RandomForestRegressor(n_estimators=4, verbose=3, n_jobs=2)
-regressor_phi = RandomForestRegressor(n_estimators=4, verbose=3, n_jobs=2)
+regressor_amp = RandomForestRegressor(n_estimators=4, verbose=3, n_jobs=4)
+regressor_phi = RandomForestRegressor(n_estimators=4, verbose=3, n_jobs=4)
 print('Fit model at: ' + str(datetime.datetime.now()))
 regressor_amp.fit(X_amp, Y_amp)
 regressor_phi.fit(X_phi, Y_phi)
@@ -107,12 +107,12 @@ print('Model fitted at: ' + str(datetime.datetime.now()))
 # REC_PATH = os.path.join(BASE_DIR, 'guitar', 'sine.wav')
 # rate, audio_data = wav.read(os.path.join(BASE_DIR, REC_PATH))
 
-FS = 48000
+FS = 96000
 T_END = 1
 
 t = np.arange(FS * T_END)
 chunk = 0.5 * np.sin(2 * np.pi * 440 * t / FS)
-fft_data = fft(chunk[:40000] * hann(40000))[:NUM_SAMPLES_IN]
+fft_data = fft(chunk[:24000] * hann(24000))[:NUM_SAMPLES_IN]
 
 # fft_data = fft(audio_data[40000:60000])[:10000]
 
@@ -124,7 +124,7 @@ fft_data_amp[0][2:] = np.abs(fft_data)
 fft_data_phi = np.empty([1, NUM_SAMPLES_IN + 2])
 fft_data_phi[0][0] = np.float64(4)
 fft_data_phi[0][1] = np.float64(4)
-fft_data_phi[0][2:] = np.angle(fft_data)
+fft_data_phi[0][2:] = np.unwrap(np.angle(fft_data))
 
 # predicted out
 y_pred_phi = regressor_phi.predict(fft_data_phi)
@@ -164,7 +164,7 @@ plt.close(fig)
 
 # save model
 BASE_DIR = os.path.dirname(os.path.abspath('amp_phi_random_forest.py'))
-joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_no_hann_amp.pkl'))
-joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_no_hann_phi.pkl'))
+joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_with_hann_amp.pkl'))
+joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_with_hann_phi.pkl'))
 
 print('Finished at: ' + str(datetime.datetime.now()))

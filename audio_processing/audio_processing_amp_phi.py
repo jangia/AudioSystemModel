@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath('audio_processing.py')))
-NUM_SAMPLES_IN = 1200
-NUM_SAMPLES_OUT = 1200
+NUM_SAMPLES_IN = 12000
+NUM_SAMPLES_OUT = 12000
 
 
 class AudioProcessor:
 
-    def __init__(self, audio, samples_length=10000, overlap=5000, gain=4, volume=4, model_name='test_model_random_forest_no_hann'):
+    def __init__(self, audio, samples_length=12000, overlap=0, gain=4, volume=4, model_name='test_model_random_forest_12000_no_hann'):
         self.audio = [(ele/2**16.) for ele in audio]  # normalize audio
         self.samples_length = samples_length
         self.overlap = overlap
@@ -40,14 +40,18 @@ class AudioProcessor:
         chunks = []
 
         for i in range(0, num_chunks):
-            start_index = i * self.overlap
+
+            if self.overlap != 0:
+                start_index = i * self.overlap
+            else:
+                start_index = i * self.samples_length
             stop_index = start_index + self.samples_length
 
             # at the end rather take longer array then too short
             if i == num_chunks - 1:
-                fft_chunk = self.audio[start_index:] * hann(len(self.audio) - start_index)
+                fft_chunk = self.audio[start_index:]
             else:
-                fft_chunk = self.audio[start_index:stop_index] * hann(stop_index-start_index)
+                fft_chunk = self.audio[start_index:stop_index]
 
             chunks.append(fft_chunk)
 
@@ -91,18 +95,17 @@ class AudioProcessor:
         model_amp = self.model_amp
         model_phi = self.model_phi
 
-        FS = 20000
+        FS = 96000
         T_END = 1
 
         t = np.arange(FS * T_END)
-        chunk = 0.9 ** 6 * np.sin(2 * np.pi * 440 * t / FS)
+        #chunk = 0.5 * np.sin(2 * np.pi * 440 * t / FS)
         # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath('audio_processing.py')))
         # REC_PATH = os.path.join(BASE_DIR, 'guitar', 'Middle.wav')
         #
         # rate, chunk = wav.read(os.path.join(BASE_DIR, REC_PATH))
-        fft_data_all = fft(chunk[:20000])
-        fft_data = fft_data_all[:1200]
-        # fft_data = fft(audio_data[40000:60000])[:10000]
+        fft_data_all = fft(chunk[:24000])
+        fft_data = fft_data_all[:12000]
 
         fft_data_amp = np.empty([1, NUM_SAMPLES_IN + 2])
         fft_data_amp[0][0] = np.float64(4)
@@ -123,7 +126,7 @@ class AudioProcessor:
         for i in range(0, NUM_SAMPLES_OUT):
             y_pred[i] = y_pred_amp[0][i] * np.cos(y_pred_phi[0][i]) + 1j * y_pred_amp[0][i] * np.sin(y_pred_phi[0][i])
 
-        plt.subplot(2, 1, 1)
+        # plt.subplot(2, 1, 1)
         # plt.semilogy(abs(y_pred), 'b')
         # plt.title('Original vs Modeled')
         # plt.ylabel('Amplitude')
@@ -134,7 +137,7 @@ class AudioProcessor:
         # plt.ylabel('Amplitude')
         # plt.show()
 
-        self.processed_audio[key] = y_pred
+        self.processed_audio[key] = np.concatenate([y_pred, y_pred])
 
     def fft_to_audio(self):
         """
@@ -147,15 +150,14 @@ class AudioProcessor:
 
         for j in range(0, len(self.processed_audio)):
             new_chunk_fft = (self.processed_audio[j])
-            # fig = plt.figure()
-            # plt.semilogy(new_chunk_fft, 'r')
-            # plt.title('Fft of chunk')
-            # plt.ylabel('Amplitude')
-            # plt.show()
-            start_index = j * self.overlap
+
+            if self.overlap != 0:
+                start_index = j * self.overlap
+            else:
+                start_index = j * self.samples_length
+
             stop_index = start_index + self.samples_length
 
-            # plt.close(fig)
             new_audio_chunk = np.fft.ifft(new_chunk_fft)
             # add chunk to whole audio
             if j == num_chunks - 1:
@@ -176,14 +178,14 @@ class AudioProcessor:
         plt.savefig('/home/jangia/Documents/Mag/AudioSystemModel/audio_processing/plots/{0}.png'.format(filename))
 
         plt.close(fig)
-        wav.write('/home/jangia/Documents/Mag/AudioSystemModel/guitar/test.wav', 48000, np.real(new_audio))
+        wav.write('/home/jangia/Documents/Mag/AudioSystemModel/guitar/test.wav', 96000, np.real(new_audio))
 
 
 if __name__== '__main__':
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath('audio_processing.py')))
-    REC_PATH = os.path.join(BASE_DIR, 'guitar', 'Middle.wav')
+    REC_PATH = os.path.join(BASE_DIR, 'guitar', 'sine_96.wav')
 
     rate, audio_data = wav.read(os.path.join(BASE_DIR, REC_PATH))
 
-    audio_processor = AudioProcessor(audio_data, samples_length=1200, overlap=0)
+    audio_processor = AudioProcessor(audio_data, samples_length=24000, overlap=0)
     audio_processor.main_processing()
