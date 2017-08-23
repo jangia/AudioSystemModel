@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 NUM_SAMPLES_IN = 12000
 NUM_SAMPLES_OUT = 12000
 
-DATA_RANGE = 5324
+DATA_RANGE = 962
 # create DB connection
 client = MongoClient()
 db = client.amp
@@ -28,32 +28,28 @@ print('Started at: ' + str(datetime.datetime.now()))
 
 # Get all FFTs
 fft_ref_all = pd.DataFrame(list(db.fft_ref.find({})))
-fft_all = pd.DataFrame(list(db.fft.find(
-    {
-    'amp': {
-        '$nin': [
-            "1.0",
-            "0.9",
-            "0.81",
-            "0.7290000000000001",
-            "0.09847709021836118",
-            "0.08862938119652507",
-            "0.0717897987691853",
-            "0.07976644307687256"
-        ]
-    }
-    }
-)))
-
+# fft_all = pd.DataFrame(list(db.fft.find(
+#     {
+#     'amp': {
+#         '$nin': [
+#             "1.0",
+#             "0.9",
+#             "0.81",
+#             "0.7290000000000001",
+#             "0.09847709021836118",
+#             "0.08862938119652507",
+#             "0.0717897987691853",
+#             "0.07976644307687256"
+#         ]
+#     }
+#     }
+# )))
+fft_all = pd.DataFrame(list(db.fft.find({'gain': '4', 'volume': '4'})))
 print('I have data from database at:' + str(datetime.datetime.now()))
 
 dataset = pd.merge(fft_all, fft_ref_all, how='inner', on=['amp', 'frequency'])
 
 f = dataset.iloc[:, 3].values
-
-# Set amplitude and input FFT as input data
-gain = dataset.iloc[:, -6].values.astype('float64')
-volume = dataset.iloc[:, -4].values.astype('float64')
 
 # Initialize X
 X_raw_re = dataset.iloc[:, -1].values
@@ -76,11 +72,6 @@ print('Filling X and Y with values from database' + str(datetime.datetime.now())
 # Convert from real and imag to phase and amplitude
 for i in range(0, DATA_RANGE):
 
-    X_amp[i][0] = gain[i]
-    X_amp[i][1] = volume[i]
-    X_phi[i][0] = gain[i]
-    X_phi[i][1] = volume[i]
-
     for j in range(0, max(NUM_SAMPLES_OUT, NUM_SAMPLES_IN)):
 
         if j < NUM_SAMPLES_OUT:
@@ -90,13 +81,13 @@ for i in range(0, DATA_RANGE):
 
         if j < NUM_SAMPLES_IN:
             x_i = X_raw_re[i][j] + 1j * X_raw_im[i][j]
-            X_amp[i][j + 2] = np.abs(x_i)
-            X_phi[i][j + 2] = np.unwrap(np.angle(np.array([x_i])))
+            X_amp[i][j] = np.abs(x_i)
+            X_phi[i][j] = np.unwrap(np.angle(np.array([x_i])))
 
 print('X and Y filled: ' + str(datetime.datetime.now()))
 
-regressor_amp = RandomForestRegressor(n_estimators=4, verbose=3, n_jobs=4)
-regressor_phi = RandomForestRegressor(n_estimators=4, verbose=3, n_jobs=4)
+regressor_amp = RandomForestRegressor(n_estimators=2, verbose=3, n_jobs=2)
+regressor_phi = RandomForestRegressor(n_estimators=2, verbose=3, n_jobs=2)
 print('Fit model at: ' + str(datetime.datetime.now()))
 regressor_amp.fit(X_amp, Y_amp)
 regressor_phi.fit(X_phi, Y_phi)
