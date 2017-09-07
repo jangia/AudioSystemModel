@@ -4,14 +4,12 @@ Created on Fri May 26 17:15:24 2017
 @author: jangia
 """
 import datetime
-import json
 import os
-import random
 from sklearn.externals import joblib
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
-from scipy.fftpack import fft
+from scipy.fftpack import fft, ifft
 from scipy.signal import hann
 from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
@@ -27,7 +25,7 @@ db = client.amp
 print('Started at: ' + str(datetime.datetime.now()))
 
 # Get all FFTs
-fft_ref_all = pd.DataFrame(list(db.fft_ref.find({})))
+fft_ref_all = pd.DataFrame(list(db.fft_ref_amp_phi.find({})))
 # fft_all = pd.DataFrame(list(db.fft.find(
 #     {
 #     'amp': {
@@ -44,53 +42,26 @@ fft_ref_all = pd.DataFrame(list(db.fft_ref.find({})))
 #     }
 #     }
 # )))
-fft_all = pd.DataFrame(list(db.fft.find({'gain': '4', 'volume': '4'})))
+fft_all = pd.DataFrame(list(db.fft_amp_phi.find({'gain': '4', 'volume': '4'})))
 print('I have data from database at:' + str(datetime.datetime.now()))
 
-dataset = pd.merge(fft_all, fft_ref_all, how='inner', on=['amp', 'frequency'])
+dataset = pd.merge(fft_ref_all, fft_all, how='inner', on=['amp', 'frequency'])
 
 f = dataset.iloc[:, 3].values
 
 # Initialize X
-X_raw_re = dataset.iloc[:, -1].values
-X_raw_im = dataset.iloc[:, -2].values
-
-# Initialize X
-X_amp = np.empty([DATA_RANGE, NUM_SAMPLES_IN+2])
-X_phi = np.empty([DATA_RANGE, NUM_SAMPLES_IN+2])
-
-# Set output FFT
-Y_raw_re = dataset.iloc[:, 3].values
-Y_raw_im = dataset.iloc[:, 2].values
+X_amp = np.array([dataset['fft_amp_x'][i][:NUM_SAMPLES_IN] for i in range(0, DATA_RANGE)])
 
 # Initialize real and imag array of output FFT
-Y_amp = np.empty([DATA_RANGE, NUM_SAMPLES_OUT])
-Y_phi = np.empty([DATA_RANGE, NUM_SAMPLES_OUT])
+Y_amp = np.array([dataset['fft_amp_y'][i][:NUM_SAMPLES_OUT] for i in range(0, DATA_RANGE)])
 
 print('X and Y initialized')
-print('Filling X and Y with values from database' + str(datetime.datetime.now()))
-# Convert from real and imag to phase and amplitude
-for i in range(0, DATA_RANGE):
 
-    for j in range(0, max(NUM_SAMPLES_OUT, NUM_SAMPLES_IN)):
-
-        if j < NUM_SAMPLES_OUT:
-            y_i = Y_raw_re[i][j] + 1j * Y_raw_im[i][j]
-            Y_amp[i][j] = np.abs(y_i)
-            Y_phi[i][j] = np.unwrap(np.angle(np.array([y_i])))
-
-        if j < NUM_SAMPLES_IN:
-            x_i = X_raw_re[i][j] + 1j * X_raw_im[i][j]
-            X_amp[i][j] = np.abs(x_i)
-            X_phi[i][j] = np.unwrap(np.angle(np.array([x_i])))
-
-print('X and Y filled: ' + str(datetime.datetime.now()))
-
-regressor_amp = RandomForestRegressor(n_estimators=2, verbose=3, n_jobs=2)
-regressor_phi = RandomForestRegressor(n_estimators=2, verbose=3, n_jobs=2)
+regressor_amp = RandomForestRegressor(n_estimators=20, verbose=3, n_jobs=5)
+#regressor_phi = RandomForestRegressor(n_estimators=2, verbose=3, n_jobs=2)
 print('Fit model at: ' + str(datetime.datetime.now()))
 regressor_amp.fit(X_amp, Y_amp)
-regressor_phi.fit(X_phi, Y_phi)
+#regressor_phi.fit(X_phi, Y_phi)
 print('Model fitted at: ' + str(datetime.datetime.now()))
 
 # Predicting the Test set results
@@ -107,44 +78,44 @@ fft_data = fft(chunk[:24000] * hann(24000))[:NUM_SAMPLES_IN]
 
 # fft_data = fft(audio_data[40000:60000])[:10000]
 
-fft_data_amp = np.empty([1, NUM_SAMPLES_IN + 2])
-fft_data_amp[0][0] = np.float64(4)
-fft_data_amp[0][1] = np.float64(4)
-fft_data_amp[0][2:] = np.abs(fft_data)
+fft_data_amp = np.empty([1, NUM_SAMPLES_IN])
+fft_data_amp[0][:] = np.abs(fft_data)
 
-fft_data_phi = np.empty([1, NUM_SAMPLES_IN + 2])
-fft_data_phi[0][0] = np.float64(4)
-fft_data_phi[0][1] = np.float64(4)
-fft_data_phi[0][2:] = np.unwrap(np.angle(fft_data))
+
+# measured out
+y_db = dataset[(dataset.frequency == '440.0') & (dataset.volume == '4') & (dataset.gain == '4') & (dataset.amp == str(0.9**6))]
+y_meas = np.empty([NUM_SAMPLES_OUT])
+y_amp = np.array([y_db['fft_amp_y'].values[0][:NUM_SAMPLES_OUT]])
+y_ph = np.array([y_db['fft_ph_y'].values[0][:NUM_SAMPLES_OUT]])
+
+for i in range(0, NUM_SAMPLES_OUT):
+    y_meas[i] = y_amp[0][i] * np.cos(y_ph[0][i]) + 1j * y_amp[0][i] * np.sin(y_ph[0][i])
 
 # predicted out
-y_pred_phi = regressor_phi.predict(fft_data_phi)
+y_pred_phi = [np.unwrap(np.angle(fft_data))]
+#y_pred_phi = [[np.pi*NUM_SAMPLES_OUT / (i+1) for i in range(NUM_SAMPLES_OUT)]]
+#y_pred_phi = [np.unwrap(np.angle(hann(NUM_SAMPLES_OUT)))]
 y_pred_amp = regressor_amp.predict(fft_data_amp)
+
 
 y_pred = np.empty([NUM_SAMPLES_OUT], dtype='complex128')
 
 for i in range(0, NUM_SAMPLES_OUT):
     y_pred[i] = y_pred_amp[0][i] * np.cos(y_pred_phi[0][i]) + 1j * y_pred_amp[0][i] * np.sin(y_pred_phi[0][i])
 
-# measured out
-y_db = dataset[(dataset.frequency == '440.0') & (dataset.volume == '4') & (dataset.gain == '4') & (dataset.amp == str(0.9**6))]
-y_meas = np.empty([NUM_SAMPLES_OUT])
-y_raw_re = y_db.iloc[:, 3].values
-y_raw_im = y_db.iloc[:, 2].values
+y_pred = np.concatenate([y_pred, [y_pred[NUM_SAMPLES_OUT-i-1] for i in range(NUM_SAMPLES_OUT)]])
 
-for j in range(0, NUM_SAMPLES_OUT):
-    y_meas[j] = np.abs(y_raw_re[0][j] + 1j * y_raw_im[0][j])
 
 # draw plots
 fig = plt.figure()
 
 plt.subplot(2, 1, 1)
-plt.semilogy(abs(y_meas), 'r')
+plt.plot(ifft(y_pred), 'b')
 plt.title('Original vs Modeled')
 plt.ylabel('Amplitude')
 
 plt.subplot(2, 1, 2)
-plt.semilogy(abs(y_pred), 'b')
+plt.plot(ifft(y_meas), 'r')
 plt.title('Original vs Modeled')
 plt.ylabel('Amplitude')
 
@@ -155,7 +126,7 @@ plt.close(fig)
 
 # save model
 BASE_DIR = os.path.dirname(os.path.abspath('amp_phi_random_forest.py'))
-joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_with_hann_amp.pkl'))
-joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_with_hann_phi.pkl'))
+joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_with_hann_amp_12000_20trees.pkl'))
+#joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_with_hann_phi.pkl'))
 
 print('Finished at: ' + str(datetime.datetime.now()))
