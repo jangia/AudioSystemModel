@@ -14,8 +14,8 @@ from scipy.signal import hann
 from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
 
-NUM_SAMPLES_IN = 12000
-NUM_SAMPLES_OUT = 12000
+NUM_SAMPLES_IN = 1200
+NUM_SAMPLES_OUT = 1200
 
 DATA_RANGE = 962
 # create DB connection
@@ -57,7 +57,7 @@ Y_amp = np.array([dataset['fft_amp_y'][i][:NUM_SAMPLES_OUT] for i in range(0, DA
 
 print('X and Y initialized')
 
-regressor_amp = RandomForestRegressor(n_estimators=20, verbose=3, n_jobs=5)
+regressor_amp = RandomForestRegressor(n_estimators=4, verbose=3, n_jobs=2)
 #regressor_phi = RandomForestRegressor(n_estimators=2, verbose=3, n_jobs=2)
 print('Fit model at: ' + str(datetime.datetime.now()))
 regressor_amp.fit(X_amp, Y_amp)
@@ -93,8 +93,8 @@ for i in range(0, NUM_SAMPLES_OUT):
 
 # predicted out
 y_pred_phi = [np.unwrap(np.angle(fft_data))]
-#y_pred_phi = [[np.pi*NUM_SAMPLES_OUT / (i+1) for i in range(NUM_SAMPLES_OUT)]]
-#y_pred_phi = [np.unwrap(np.angle(hann(NUM_SAMPLES_OUT)))]
+#y_pred_phi = [[0 for i in range(NUM_SAMPLES_OUT)]]
+#y_pred_phi = [[0] for i in range(NUM_SAMPLES_OUT)]
 y_pred_amp = regressor_amp.predict(fft_data_amp)
 
 
@@ -103,21 +103,21 @@ y_pred = np.empty([NUM_SAMPLES_OUT], dtype='complex128')
 for i in range(0, NUM_SAMPLES_OUT):
     y_pred[i] = y_pred_amp[0][i] * np.cos(y_pred_phi[0][i]) + 1j * y_pred_amp[0][i] * np.sin(y_pred_phi[0][i])
 
-y_pred = np.concatenate([y_pred, [y_pred[NUM_SAMPLES_OUT-i-1] for i in range(NUM_SAMPLES_OUT)]])
-
 
 # draw plots
 fig = plt.figure()
 
 plt.subplot(2, 1, 1)
 plt.plot(ifft(y_pred), 'b')
-plt.title('Original vs Modeled')
-plt.ylabel('Amplitude')
+plt.title('Modeliran signal na izhodu')
+plt.ylabel('Amplituda')
+plt.xlabel('Čas')
 
 plt.subplot(2, 1, 2)
+plt.title('Originalni signal na izhodu')
 plt.plot(ifft(y_meas), 'r')
-plt.title('Original vs Modeled')
-plt.ylabel('Amplitude')
+plt.ylabel('Amplituda')
+plt.xlabel('Čas')
 
 filename = 'guitar'
 plt.savefig('/home/jangia/Documents/Mag/AudioSystemModel/normal_regression/plots/{0}_{1}.png'.format(filename, datetime.datetime.now()))
@@ -126,7 +126,7 @@ plt.close(fig)
 
 # save model
 BASE_DIR = os.path.dirname(os.path.abspath('amp_phi_random_forest.py'))
-joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_with_hann_amp_12000_20trees.pkl'))
+#joblib.dump(regressor_amp, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_with_hann_amp_12000_20trees.pkl'))
 #joblib.dump(regressor_phi, os.path.join(BASE_DIR, 'models', 'test_model_random_forest_with_hann_phi.pkl'))
 
 print('Finished at: ' + str(datetime.datetime.now()))

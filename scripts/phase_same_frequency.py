@@ -19,10 +19,11 @@ amps = sorted(sorted_fft['amp'])
 
 lines = []
 for i in range(len(X_ph)):
-    color = '#{0:06X}'.format(i * 600000)
-    line = plt.plot(np.unwrap(X_ph[i]), color=color, label='|A| {:.3}'.format(amps[i]))
-    lines.append(line[0])
-    print(amps[i])
+    if  8 < i < 13:#== 0:
+        color = '#{0:06X}'.format(i * 600000)
+        line = plt.plot(np.unwrap(X_ph[i]), color=color, label='|A| {:.3}'.format(amps[i]))
+        lines.append(line[0])
+        print(amps[i])
 
 #labels = [line.get_label() for line in lines]
 plt.legend(handles=lines, ncol=2, bbox_to_anchor=(1.05, 1), loc=2)
@@ -32,5 +33,5 @@ plt.ylabel('Kot (°)')
 plt.xlabel('Frekvenca (Hz)')
 plt.grid()
 plt.xlim(xmin=0)
-plt.savefig('plots/faza_{0}.jpg'.format(datetime.datetime.now()), bbox_inches='tight')
-plt.close()
+plt.savefig('plots/faza_podrobno_{0}.jpg'.format(datetime.datetime.now()), bbox_inches='tight')
+plt.show()
