@@ -7,8 +7,12 @@ Created on Thu May 25 12:25:31 2017
 """
 import os
 import threading
-from preprocessing.process_record.edit_record import cut_record
-from preprocessing.process_record.process_chunk import process_chunk
+
+from pymongo import MongoClient
+from scipy.fftpack import fft
+from scipy.signal import hann
+import numpy as np
+from scipy.io import wavfile as wav
 
 
 class AudioFftToDb:
@@ -40,7 +44,7 @@ class AudioFftToDb:
 
             if self.file_pattern in file or self.file_pattern == '*':
                 # chunk file
-                audio_chunks = cut_record(
+                audio_chunks = self.cut_record(
                     os.path.join(self.rec_path, file),
                     self.sample_rate,
                     self.fft_samples,
@@ -50,10 +54,67 @@ class AudioFftToDb:
 
                 for frq, chunk in audio_chunks.items():
                     # run proccessing
-                    t = threading.Thread(target=process_chunk, args=(file, frq, chunk, self.fft_db_len))
+                    t = threading.Thread(target=self.process_chunk, args=(file, frq, chunk, self.fft_db_len))
                     t.daemon = True
                     t.start()
                     #process_chunk(file, frq, chunk, self.fft_db_len)
+
+    def process_chunk(self, filename, frequency, chunk, data_len):
+
+        # database entry
+        db_entry = {
+            "gain": filename[1],
+            "volume": filename[3],
+            "frequency": frequency,
+            "amp": filename[5:-4].replace('_', '.'),
+            "fft_amp": [],
+            "fft_ph": []
+        }
+        fft_amp = []
+        fft_ph = []
+
+        # calculate FFT
+        chunk_fft = fft(chunk * hann(len(chunk)))
+
+        # plt.semilogy(abs(chunk_fft[:1500]), 'b')
+        # plt.title('Original vs Modeled')
+        # plt.ylabel('Amplitude')
+        # plt.show()
+
+        # add FFTs to db_entry
+        for i in range(0, data_len):
+            fft_amp.append(abs(chunk_fft[i]))
+            fft_ph.append(np.angle(chunk_fft[i]))
+
+        db_entry['fft_amp'] = fft_amp
+        db_entry['fft_ph'] = fft_ph
+
+        # database
+        client = MongoClient()
+        db = client.amp
+
+        db.fft_amp_phi.insert_one(db_entry)
+        print('Finsihed for file: {0}'.format(filename))
+
+        return 0
+
+    def cut_record(self, filepath, step, samples=40000, num_of_chunks=2, offset=0):
+
+        rate, audio = wav.read(filepath)
+        audio_data = [(ele / 2 ** 16.) for ele in audio]
+        chunks = {}
+        print('Start to cut to chunks for:{0}'.format(filepath))
+        for i in range(0, num_of_chunks - 1):
+            start = i * step + offset
+            stop = start + samples
+
+            frequency = 440 * (2 ** (1 / 12)) ** (i - 30)
+
+            chunk = [item[0] for item in audio_data[start:stop]]
+
+            chunks[str(frequency)] = chunk
+        print('Finish to cut to chunks for:{0}'.format(filepath))
+        return chunks
 
 
 if __name__=='__main__':

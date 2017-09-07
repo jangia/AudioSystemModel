@@ -1,0 +1,1 @@
+# polynomial for 12000 samples
