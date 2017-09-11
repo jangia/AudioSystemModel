@@ -13,5 +13,13 @@ random_forest:
   small_model:
     num_of_estimators: 4
     num_of_jobs: 2
-  models_location: models
+  models_location: 'random_forest'
 
+polynomial:
+  big_model:
+    degree: 5
+  small_model:
+    degree: 3
+  models_location: 'polynomial'
+
+models_location: 'models'

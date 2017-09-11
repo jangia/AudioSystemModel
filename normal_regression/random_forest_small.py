@@ -48,10 +48,10 @@ regressor_amp.fit(X_amp, Y_amp)
 print('Model fitted at: ' + str(datetime.datetime.now()))
 
 # save model
-BASE_DIR = os.path.dirname(os.path.abspath('config.py'))
+MODELS_PATH = os.path.join(os.path.dirname(os.path.abspath('config.py')), config['models_location'])
 joblib.dump(
     regressor_amp,
-    os.path.join(BASE_DIR, config['random_forest']['models_location'], 'random_forest_small_{0}.pkl'.format(datetime.datetime.now()))
+    os.path.join(MODELS_PATH, config['random_forest']['models_location'], 'random_forest_small_{0}.pkl'.format(datetime.datetime.now()))
 )
 
 print('Finished at: ' + str(datetime.datetime.now()))

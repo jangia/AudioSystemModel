@@ -5,4 +5,6 @@ neural_network/plots/*
 neural_network/models/*
 audio_processing/plots/*
 resources/*
-models/*
+models/neural_network/*.pkl
+models/polynomial/*.pkl
+models/random_forest/*.pkl
