@@ -5,3 +5,4 @@ neural_network/plots/*
 neural_network/models/*
 audio_processing/plots/*
 resources/*
+models/*

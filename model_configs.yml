@@ -1,0 +1,17 @@
+big_models:
+    num_samples_in: 12000
+    num_samples_out: 12000
+
+small_models:
+  num_samples_in: 1200
+  num_samples_out: 1200
+
+random_forest:
+  big_model:
+    num_of_estimators: 20
+    num_of_jobs: 10
+  small_model:
+    num_of_estimators: 4
+    num_of_jobs: 2
+  models_location: models
+

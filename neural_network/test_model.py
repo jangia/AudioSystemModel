@@ -112,7 +112,7 @@ for amp in AMPS:
     
 
 # serialize model to JSON
-BASE_DIR = os.path.dirname(os.path.abspath('test_model.py'))
+BASE_DIR = os.path.dirname(os.path.abspath('test_model_small.py'))
 
 model_json = model.to_json()
 with open(os.path.join(BASE_DIR, 'models', 'test_model.json'), "w") as json_file:
