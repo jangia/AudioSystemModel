@@ -55,7 +55,7 @@ for i in range(0, NUM_SAMPLES_OUT):
     y_meas[i] = y_amp[0][i] * np.cos(y_ph[0][i]) + 1j * y_amp[0][i] * np.sin(y_ph[0][i])
 
 # load model
-MODELS_PATH = os.path.join(os.path.dirname(os.path.abspath('config.py')), config['models_location'])
+MODELS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath('config.py'))), config['models_location'])
 regressor_amp = joblib.load(
     os.path.join(MODELS_PATH, config['polynomial']['models_location'], 'polynomial_big.pkl')
 )

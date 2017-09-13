@@ -17,8 +17,6 @@ from config import load_config
 config = load_config()
 NUM_SAMPLES_IN = config['big_models']['num_samples_in']
 NUM_SAMPLES_OUT = config['big_models']['num_samples_out']
-NUM_ESTIMATORS = config['polynomial']['big_model']['num_of_estimators']
-NUM_JOBS = config['polynomial']['big_model']['num_of_jobs']
 DEGREE = config['polynomial']['small_model']['degree']
 
 # create DB connection

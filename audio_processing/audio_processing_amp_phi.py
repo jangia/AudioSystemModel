@@ -24,7 +24,7 @@ class AudioProcessor:
         self.chunks = []
         self.processed_audio = {}
         self.new_chunks = []
-        self.model_path = os.path.join(BASE_DIR, 'normal_regression', 'models', model_name)
+        self.model_path = os.path.join(BASE_DIR, 'models', model_name)
         self.model_amp = joblib.load('{path}_{type}.pkl'.format(path=self.model_path, type='amp'))
         self.model_phi = joblib.load('{path}_{type}.pkl'.format(path=self.model_path, type='phi'))
         self.gain = gain
