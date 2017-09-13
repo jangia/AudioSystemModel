@@ -22,4 +22,9 @@ polynomial:
     degree: 3
   models_location: 'polynomial'
 
+neural_network:
+  batch_size: 32
+  epochs: 150
+  models_location: 'neural_network'
+
 models_location: 'models'

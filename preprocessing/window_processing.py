@@ -103,7 +103,7 @@ class AudioWindowFftToDb:
         client = MongoClient()
         db = client.amp
 
-        db.fft_amp_phi_guitar_single_akordi.insert_one(db_entry)
+        db.fft_amp_phi_guitar_solo.insert_one(db_entry)
 
         return 0
 
@@ -133,5 +133,5 @@ class AudioWindowFftToDb:
 
 
 if __name__=='__main__':
-    audio_to_db = AudioWindowFftToDb(subfolder_name='Akordi')
+    audio_to_db = AudioWindowFftToDb(subfolder_name='IgranjeSolo')
     audio_to_db.process_files()
