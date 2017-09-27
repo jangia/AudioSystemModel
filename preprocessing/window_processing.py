@@ -18,13 +18,15 @@ from scipy.io import wavfile as wav
 
 class AudioWindowFftToDb:
 
-    def __init__(self, subfolder_name, sample_rate=96000, fft_samples=24000, fft_db_len=12000, overlap=20000):
+    def __init__(self, subfolder_name, sample_rate=96000, fft_samples=1000, fft_db_len=1000, overlap=500):
         self.subfolder_name = subfolder_name
         self.sample_rate = sample_rate
         self.fft_samples = fft_samples
         self.fft_db_len = fft_db_len
         self.rec_path = self.set_filepath()
         self.overlap=overlap
+        client = MongoClient()
+        self.db = client.amp
 
     def set_filepath(self):
 
@@ -67,43 +69,17 @@ class AudioWindowFftToDb:
                 #t = threading.Thread(target=self.process_chunk, args=(chunk, audio_chunks_ref, self.fft_db_len))
                 #t.daemon = True
                 #t.start()
-                self.process_chunk(audio_chunks_ref[j], audio_chunks_ref[j], self.fft_db_len)
+                self.process_chunk(audio_chunks[j], audio_chunks_ref[j], self.fft_db_len)
 
     def process_chunk(self, chunk, ref_chunk, data_len):
 
         # database entry
         db_entry = {
-            "fft_amp": [],
-            "fft_ph": [],
-            "fft_amp_ref": [],
-            "fft_ph_ref": []
+            "in": list(ref_chunk),
+            "out": list(chunk)
         }
-        fft_amp = []
-        fft_ph = []
-        fft_amp_ref = []
-        fft_ph_ref = []
 
-        # calculate FFT
-        chunk_fft = fft(chunk * hann(len(chunk)))
-        chunk_ref_fft = fft(ref_chunk * hann(len(ref_chunk)))
-
-        # add FFTs to db_entry
-        for i in range(0, data_len):
-            fft_amp.append(abs(chunk_fft[i]))
-            fft_ph.append(np.angle(chunk_fft[i]))
-            fft_amp_ref.append(abs(chunk_ref_fft[i]))
-            fft_ph_ref.append(np.angle(chunk_ref_fft[i]))
-
-        db_entry['fft_amp'] = fft_amp
-        db_entry['fft_ph'] = fft_ph
-        db_entry['fft_amp_ref'] = fft_amp_ref
-        db_entry['fft_ph_ref'] = fft_ph_ref
-
-        # database
-        client = MongoClient()
-        db = client.amp
-
-        db.fft_amp_phi_guitar_solo.insert_one(db_entry)
+        self.db.time_domain.insert_one(db_entry)
 
         return 0
 
@@ -115,8 +91,8 @@ class AudioWindowFftToDb:
         """
         # Calculate how many chunks from audio
         rate, audio = wav.read(filepath)
-        # audio_data = [(ele / 2 ** 16.) for ele in audio]
-        audio_data = audio
+        audio_data = [(ele / 2 ** 16.) for ele in audio]
+        # audio_data = audio
 
         num_chunks = int(math.floor(len(audio_data)/(samples - overlap))) - 10
         chunks = []
@@ -125,7 +101,7 @@ class AudioWindowFftToDb:
             start_index = i * (samples - overlap)
             stop_index = start_index + samples
 
-            fft_chunk = audio_data[start_index:stop_index] * hann(samples)
+            fft_chunk = audio_data[start_index:stop_index]
 
             chunks.append(fft_chunk)
 

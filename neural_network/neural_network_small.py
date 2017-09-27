@@ -14,10 +14,6 @@ from pymongo import MongoClient
 from keras.models import Sequential
 from keras.layers import Dense, Activation, GaussianNoise
 import matplotlib.pyplot as plt
-from scipy.fftpack import fft, ifft
-from scipy.io import wavfile as wav
-from keras.layers.advanced_activations import LeakyReLU, ELU, ThresholdedReLU
-from scipy.signal import hann
 
 from config import load_config
 
@@ -42,41 +38,87 @@ data_range = dataset.shape[0]
 X_amp = np.array([dataset['fft_amp_ref'][i][:NUM_SAMPLES_IN] for i in range(0, data_range)])
 Y_amp = np.array([dataset['fft_amp'][i][:NUM_SAMPLES_OUT] for i in range(0, data_range)])
 print('X and Y initialized')
+del dataset
 
-alpha = 0.3
-activation = 'linear'
+# first model
+activation_1 = 'linear'
 
-model_amp = Sequential()
-model_amp.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN, kernel_initializer='normal', activation='linear'))
-model_amp.add(GaussianNoise(1.0))
-#model_amp.add(Dense(units=NUM_SAMPLES_IN, kernel_initializer='normal', activation='linear'))
-#model_amp.add(Dense(units=NUM_SAMPLES_IN, kernel_initializer='normal', activation='linear'))
-#model_amp.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
-model_amp.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation))
-model_amp.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
+model_amp_1 = Sequential()
+model_amp_1.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation_1))
+model_amp_1.add(Dense(units=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation_1))
+model_amp_1.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation_1))
+model_amp_1.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation_1))
+model_amp_1.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
 
-print('Started at: ' + str(datetime.datetime.now()))
-DATA_RANGE = dataset.shape[0]
+print('Fit model1')
+history_amp_1 = model_amp_1.fit(X_amp, Y_amp, batch_size=15, epochs=100, shuffle=True)
 
-print('Fit model')
-history_amp = model_amp.fit(X_amp, Y_amp, batch_size=34, epochs=50, shuffle=True)
+MODELS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath('config.py'))), config['models_location'])
+model_amp_1.save(
+    os.path.join(MODELS_PATH, config['neural_network']['models_location'], 'neural_network_small_1_{0}.h5'
+                 .format(datetime.datetime.now()))
+)
+del model_amp_1
 
-print(history_amp.history.keys())
+# second model
+activation_2 = 'linear'
+
+model_amp_2 = Sequential()
+model_amp_2.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation_2))
+model_amp_2.add(Dense(units=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation_2))
+model_amp_2.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation_2))
+model_amp_2.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation_2))
+model_amp_2.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
+
+print('Fit model2')
+history_amp_2 = model_amp_2.fit(X_amp, Y_amp, batch_size=100, epochs=150, shuffle=True)
+
+MODELS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath('config.py'))), config['models_location'])
+model_amp_2.save(
+    os.path.join(MODELS_PATH, config['neural_network']['models_location'], 'neural_network_small_2_{0}.h5'
+                 .format(datetime.datetime.now()))
+)
+del model_amp_2
+
+# second model
+activation_3 = 'linear'
+
+model_amp_3 = Sequential()
+model_amp_3.add(Dense(units=NUM_SAMPLES_IN, input_dim=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation_3))
+model_amp_3.add(Dense(units=NUM_SAMPLES_IN, kernel_initializer='normal', activation=activation_3))
+model_amp_3.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation_3))
+model_amp_3.add(Dense(units=NUM_SAMPLES_OUT, kernel_initializer='normal', activation=activation_3))
+model_amp_3.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
+
+print('Fit model2')
+history_amp_3 = model_amp_3.fit(X_amp, Y_amp, batch_size=500, epochs=150, shuffle=True)
+
+MODELS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath('config.py'))), config['models_location'])
+model_amp_3.save(
+    os.path.join(MODELS_PATH, config['neural_network']['models_location'], 'neural_network_small_3_{0}.h5'
+                 .format(datetime.datetime.now()))
+)
+del model_amp_3
+
 #  "Accuracy"
 plt.subplot(2, 1, 1)
-plt.plot(history_amp.history['acc'])
+plt.plot(history_amp_1.history['acc'], color='b')
+plt.plot(history_amp_1.history['acc'], color='r')
+plt.plot(history_amp_3.history['acc'], color='g')
 plt.title('Natančnost modela')
 plt.ylabel('Natančnost')
 plt.xlabel('Ponovitev')
-plt.legend(['Trening', 'Validacija'], loc='upper left')
+plt.legend(['Podset 15', 'Podset 100', 'Podset 500'], loc='lower right')
 
 # "Loss"
 plt.subplot(2, 1, 2)
-plt.plot(history_amp.history['loss'])
+plt.plot(history_amp_1.history['loss'], color='b')
+plt.plot(history_amp_2.history['loss'], color='r')
+plt.plot(history_amp_3.history['loss'], color='g')
 plt.title('Napaka modela')
 plt.ylabel('Napaka')
 plt.xlabel('Ponovitev')
-plt.legend(['Trening', 'Validacija'], loc='upper left')
+plt.legend(['Podset 15', 'Podset 100', 'Podset 500'], loc='upper right')
 plt.savefig('/home/jangia/Documents/Mag/AudioSystemModel/neural_network/plots/{0}_{1}.png'
             .format('amp_model_loss', datetime.datetime.now()))
 

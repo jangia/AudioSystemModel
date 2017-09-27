@@ -1,6 +1,6 @@
 big_models:
-    num_samples_in: 12000
-    num_samples_out: 12000
+    num_samples_in: 500
+    num_samples_out: 500
 
 small_models:
   num_samples_in: 1200
