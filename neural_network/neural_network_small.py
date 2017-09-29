@@ -103,7 +103,7 @@ del model_amp_3
 #  "Accuracy"
 plt.subplot(2, 1, 1)
 plt.plot(history_amp_1.history['acc'], color='b')
-plt.plot(history_amp_1.history['acc'], color='r')
+plt.plot(history_amp_2.history['acc'], color='r')
 plt.plot(history_amp_3.history['acc'], color='g')
 plt.title('Natančnost modela')
 plt.ylabel('Natančnost')
