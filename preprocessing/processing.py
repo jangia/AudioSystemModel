@@ -25,12 +25,13 @@ class AudioFftToDb:
         self.fft_db_len = fft_db_len
         self.rec_path = self.set_filepath()
         self.file_pattern = file_pattern
+        self.set_name = 'igranje_akordi'
 
     def set_filepath(self):
 
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath('processing.py')))
 
-        return os.path.join(base_dir, 'recordings')
+        return os.path.join(base_dir, 'recordings', 'ref')
 
     def get_files(self):
 
@@ -46,29 +47,27 @@ class AudioFftToDb:
                 # chunk file
                 audio_chunks = self.cut_record(
                     os.path.join(self.rec_path, file),
-                    self.sample_rate,
+                    self.offset,
                     self.fft_samples,
-                    self.num_chunks,
-                    self.offset
+                    offset=self.offset
                 )
 
-                for frq, chunk in audio_chunks.items():
+                for chunk in audio_chunks:
                     # run proccessing
-                    t = threading.Thread(target=self.process_chunk, args=(file, frq, chunk, self.fft_db_len))
+                    t = threading.Thread(target=self.process_chunk, args=(file, chunk, audio_chunks.index(chunk), self.fft_db_len, len(audio_chunks)))
                     t.daemon = True
                     t.start()
-                    #process_chunk(file, frq, chunk, self.fft_db_len)
+                    # self.process_chunk(file, chunk, audio_chunks.index(chunk), self.fft_db_len)
 
-    def process_chunk(self, filename, frequency, chunk, data_len):
+    def process_chunk(self, filename, chunk, num, data_len, all_chunks):
 
         # database entry
         db_entry = {
-            "gain": filename[1],
-            "volume": filename[3],
-            "frequency": frequency,
-            "amp": filename[5:-4].replace('_', '.'),
+            "set_name": self.set_name,
             "fft_amp": [],
-            "fft_ph": []
+            "fft_ph": [],
+            "filename": filename,
+            "num": num
         }
         fft_amp = []
         fft_ph = []
@@ -93,30 +92,36 @@ class AudioFftToDb:
         client = MongoClient()
         db = client.amp
 
-        db.fft_amp_phi.insert_one(db_entry)
-        print('Finsihed for file: {0}'.format(filename))
+        db.fft_amp_phi_ref.insert_one(db_entry)
+        print('Finsihed {1}/{2} for file: {0}'.format(filename, num, all_chunks))
 
         return 0
 
-    def cut_record(self, filepath, step, samples=40000, num_of_chunks=2, offset=0):
+    def cut_record(self, filepath, step, samples=40000, num_of_chunks=None, offset=0):
 
         rate, audio = wav.read(filepath)
         audio_data = [(ele / 2 ** 16.) for ele in audio]
-        chunks = {}
+        if num_of_chunks is None:
+            num_of_chunks = int(len(audio_data)/step)
+        chunks = []
         print('Start to cut to chunks for:{0}'.format(filepath))
         for i in range(0, num_of_chunks - 1):
             start = i * step + offset
             stop = start + samples
 
-            frequency = 440 * (2 ** (1 / 12)) ** (i - 30)
+            chunk = [item for item in audio_data[start:stop]]
 
-            chunk = [item[0] for item in audio_data[start:stop]]
-
-            chunks[str(frequency)] = chunk
+            if chunk:
+                chunks.append(chunk)
         print('Finish to cut to chunks for:{0}'.format(filepath))
         return chunks
 
 
-if __name__=='__main__':
-    audio_to_db = AudioFftToDb(file_pattern='g4v4')
+if __name__ == '__main__':
+    audio_to_db = AudioFftToDb(
+        sample_rate=96000,
+        fft_samples=12000,
+        offset=3000,
+        file_pattern='*'
+    )
     audio_to_db.process_files()
