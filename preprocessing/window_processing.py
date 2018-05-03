@@ -84,8 +84,8 @@ class AudioWindowFftToDb:
         fft_ph_ref = []
 
         # calculate FFT
-        chunk_fft = fft(chunk * hann(len(chunk)))
-        chunk_ref_fft = fft(ref_chunk * hann(len(ref_chunk)))
+        chunk_fft = fft(chunk)
+        chunk_ref_fft = fft(ref_chunk)
 
         # add FFTs to db_entry
         for i in range(0, data_len):
